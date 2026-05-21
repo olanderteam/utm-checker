@@ -28,7 +28,7 @@ export async function GET(request) {
     const aiAnalysis = await analyzePerformance(insights, utmAnalysis);
 
     const timestamp = new Date().toLocaleString('pt-BR', {
-      timeZone: process.env.TZ || 'America/Sao_Paulo',
+      timeZone: 'America/Sao_Paulo',
       day: '2-digit',
       month: '2-digit',
       year: 'numeric',
