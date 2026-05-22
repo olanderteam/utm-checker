@@ -1,0 +1,16 @@
+{
+  "name": "slack-utm-bot",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "next dev --turbopack",
+    "build": "next build",
+    "start": "next start"
+  },
+  "dependencies": {
+    "@slack/web-api": "^7.8.0",
+    "groq-sdk": "^0.12.0",
+    "next": "^16.2.6"
+  }
+}
