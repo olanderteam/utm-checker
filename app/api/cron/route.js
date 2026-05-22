@@ -1,5 +1,5 @@
-import { getCampaignInsights, getCampaignsWithUTMs, getAdsetsWithUTMs, extractLeadsFromInsight } from '@/lib/meta';
-import { analyzeUTMs } from '@/lib/utm-checker';
+import { getCampaignInsights, getCampaignsWithUTMs, getAdsetsWithUTMs, getAdsForCampaigns, extractLeadsFromInsight } from '@/lib/meta';
+import { analyzeUTMs, getSemTrackingCampaignIds } from '@/lib/utm-checker';
 import { buildSlackBlocks } from '@/lib/formatter';
 import { analyzePerformance } from '@/lib/groq-client';
 import { postReport, postError } from '@/lib/slack-client';
@@ -24,6 +24,10 @@ export async function GET(request) {
       getAdsetsWithUTMs(adAccountId, token),
     ]);
 
+    // Pass 1: find campaigns with no url_tags at any level → fetch their ads
+    const semTrackingIds = getSemTrackingCampaignIds(campaigns, adsets);
+    const ads = await getAdsForCampaigns(adAccountId, token, semTrackingIds);
+
     const insightsWithLeads = insights.map(r => ({
       ...r,
       leads: extractLeadsFromInsight(r),
@@ -32,7 +36,8 @@ export async function GET(request) {
     const totalLeads = insightsWithLeads.reduce((s, r) => s + r.leads, 0);
     const leadsData = { totalLeads };
 
-    const utmAnalysis = analyzeUTMs(campaigns, adsets);
+    // Pass 2: full analysis with creative UTM validation
+    const utmAnalysis = analyzeUTMs(campaigns, adsets, ads);
     const aiAnalysis = await analyzePerformance(insightsWithLeads, utmAnalysis, leadsData);
 
     const timestamp = new Date().toLocaleString('pt-BR', {
@@ -53,6 +58,7 @@ export async function GET(request) {
       totalLeads,
       utmBroken: utmAnalysis.broken.length,
       utmOk: utmAnalysis.ok.length,
+      utmOkCreative: utmAnalysis.okCreative.length,
       semTracking: utmAnalysis.semTracking,
     });
   } catch (err) {
