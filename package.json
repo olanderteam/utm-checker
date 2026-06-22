@@ -1,0 +1,16 @@
+{
+  "name": "slack-utm-bot",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "next dev --turbopack",
+    "build": "next build",
+    "start": "next start"
+  },
+  "dependencies": {
+    "@slack/web-api": "^7.8.0",
+    "@supabase/supabase-js": "^2.106.2",
+    "next": "^16.2.6"
+  }
+}
