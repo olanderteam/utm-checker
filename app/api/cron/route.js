@@ -12,14 +12,6 @@ export async function GET(request) {
     return Response.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  // MODO DE MANUTENÇÃO: Desativa o envio de relatórios.
-  // O bot retornará uma resposta de sucesso sem processar leads ou postar no Slack.
-  console.log('[cron] Executado em modo de manutenção. Nenhum relatório será enviado.');
-  return Response.json({
-    ok: true,
-    message: 'Bot is in maintenance mode. No report sent.',
-  });
-  /*
   try {
     const leads = await getTodayLeads();
     const leadsAnalysis = analyzeSupabaseLeads(leads);
@@ -45,5 +37,4 @@ export async function GET(request) {
     await postError(err.message).catch(() => {});
     return Response.json({ error: err.message }, { status: 500 });
   }
-  */
 }
