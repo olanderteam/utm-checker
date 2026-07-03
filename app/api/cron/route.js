@@ -17,6 +17,9 @@ export async function GET(request) {
   }
 
   try {
+    const url = new URL(request.url);
+    const forcedPeriod = url.searchParams.get('period'); // 'today' | 'yesterday', para testes manuais
+
     const currentHour = Number(
       new Intl.DateTimeFormat('en-US', {
         timeZone: 'America/Sao_Paulo',
@@ -25,7 +28,7 @@ export async function GET(request) {
       }).format(new Date())
     );
 
-    const isFirstRun = currentHour === FIRST_RUN_HOUR;
+    const isFirstRun = forcedPeriod ? forcedPeriod === 'yesterday' : currentHour === FIRST_RUN_HOUR;
     const leads = isFirstRun ? await getYesterdayLeads() : await getTodayLeads();
     const leadsAnalysis = analyzeSupabaseLeads(leads);
 
