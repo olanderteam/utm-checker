@@ -1,10 +1,14 @@
 import { buildSlackBlocks } from '@/lib/formatter';
-import { getTodayLeads, analyzeSupabaseLeads } from '@/lib/supabase';
+import { getTodayLeads, getYesterdayLeads, analyzeSupabaseLeads } from '@/lib/supabase';
 import { postReport, postError } from '@/lib/slack-client';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 export const maxDuration = 120;
+
+// Primeiro disparo do dia (08h Brasília): reporta o fechamento do dia anterior,
+// já que às 08h o dia corrente ainda não teve tempo de gerar leads relevantes.
+const FIRST_RUN_HOUR = 8;
 
 export async function GET(request) {
   const auth = request.headers.get('Authorization');
@@ -13,7 +17,16 @@ export async function GET(request) {
   }
 
   try {
-    const leads = await getTodayLeads();
+    const currentHour = Number(
+      new Intl.DateTimeFormat('en-US', {
+        timeZone: 'America/Sao_Paulo',
+        hour: '2-digit',
+        hour12: false,
+      }).format(new Date())
+    );
+
+    const isFirstRun = currentHour === FIRST_RUN_HOUR;
+    const leads = isFirstRun ? await getYesterdayLeads() : await getTodayLeads();
     const leadsAnalysis = analyzeSupabaseLeads(leads);
 
     const timestamp = new Date().toLocaleString('pt-BR', {
@@ -22,11 +35,15 @@ export async function GET(request) {
       hour: '2-digit', minute: '2-digit',
     });
 
-    const blocks = buildSlackBlocks(timestamp, leadsAnalysis);
+    const blocks = buildSlackBlocks(timestamp, leadsAnalysis, {
+      periodLabel: isFirstRun ? 'ontem' : 'hoje',
+      headerTitle: isFirstRun ? '🎯 Fechamento de Ontem — [OKR][2025Q4]' : '🎯 SQLs do Dia — [OKR][2025Q4]',
+    });
     await postReport(blocks);
 
     return Response.json({
       ok: true,
+      period: isFirstRun ? 'yesterday' : 'today',
       totalLeads: leadsAnalysis.total,
       metaLeads: leadsAnalysis.meta.count,
       googleLeads: leadsAnalysis.google.count,
