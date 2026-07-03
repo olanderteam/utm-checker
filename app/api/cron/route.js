@@ -1,5 +1,5 @@
 import { buildSlackBlocks } from '@/lib/formatter';
-import { getTodayLeads, getYesterdayLeads, analyzeSupabaseLeads } from '@/lib/supabase';
+import { getTodayLeads, getYesterdayLeads, analyzeSupabaseLeads, getSaoPauloDateLabel } from '@/lib/supabase';
 import { postReport, postError } from '@/lib/slack-client';
 
 export const runtime = 'nodejs';
@@ -35,15 +35,20 @@ export async function GET(request) {
       hour: '2-digit', minute: '2-digit',
     });
 
+    const referenceDate = isFirstRun ? getSaoPauloDateLabel(1) : getSaoPauloDateLabel(0);
+
     const blocks = buildSlackBlocks(timestamp, leadsAnalysis, {
-      periodLabel: isFirstRun ? 'ontem' : 'hoje',
-      headerTitle: isFirstRun ? '🎯 Fechamento de Ontem — [OKR][2025Q4]' : '🎯 SQLs do Dia — [OKR][2025Q4]',
+      periodLabel: isFirstRun ? `ontem (${referenceDate})` : `hoje (${referenceDate})`,
+      headerTitle: isFirstRun
+        ? `🎯 Fechamento de Ontem (${referenceDate}) — [OKR][2025Q4]`
+        : `🎯 SQLs do Dia (${referenceDate}) — [OKR][2025Q4]`,
     });
     await postReport(blocks);
 
     return Response.json({
       ok: true,
       period: isFirstRun ? 'yesterday' : 'today',
+      referenceDate,
       totalLeads: leadsAnalysis.total,
       metaLeads: leadsAnalysis.meta.count,
       googleLeads: leadsAnalysis.google.count,
