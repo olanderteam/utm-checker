@@ -1,5 +1,5 @@
 import { buildSlackBlocks } from '@/lib/formatter';
-import { getTodayLeads, getYesterdayLeads, analyzeSheetLeads, getSaoPauloDateDDMMYYYY } from '@/lib/leadsSheet';
+import { getTodayLeads, getYesterdayLeads, analyzeSheetLeads, detectAttentionPoints, getSaoPauloDateDDMMYYYY } from '@/lib/leadsSheet';
 import { postReport, postError } from '@/lib/slack-client';
 
 export const runtime = 'nodejs';
@@ -31,6 +31,7 @@ export async function GET(request) {
     const isFirstRun = forcedPeriod ? forcedPeriod === 'yesterday' : currentHour === FIRST_RUN_HOUR;
     const leads = isFirstRun ? await getYesterdayLeads() : await getTodayLeads();
     const leadsAnalysis = analyzeSheetLeads(leads);
+    const attentionPoints = detectAttentionPoints(leads);
 
     const timestamp = new Date().toLocaleString('pt-BR', {
       timeZone: 'America/Sao_Paulo',
@@ -40,7 +41,7 @@ export async function GET(request) {
 
     const referenceDate = isFirstRun ? getSaoPauloDateDDMMYYYY(1) : getSaoPauloDateDDMMYYYY(0);
 
-    const blocks = buildSlackBlocks(timestamp, leadsAnalysis, {
+    const blocks = buildSlackBlocks(timestamp, leadsAnalysis, attentionPoints, {
       periodLabel: isFirstRun ? `ontem (${referenceDate})` : `hoje (${referenceDate})`,
       headerTitle: isFirstRun
         ? `🎯 Fechamento de Ontem (${referenceDate}) — [OKR][2025Q4]`
@@ -56,6 +57,7 @@ export async function GET(request) {
       metaLeads: leadsAnalysis.meta.count,
       googleLeads: leadsAnalysis.google.count,
       otherLeads: leadsAnalysis.others.count,
+      attentionPoints,
     });
   } catch (err) {
     console.error('[cron] erro:', err);
