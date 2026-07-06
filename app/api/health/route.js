@@ -1,8 +1,10 @@
-import { supabase } from '@/lib/supabase';
 import { WebClient } from '@slack/web-api';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
+
+const SHEET_ID = '1Z3PHa2u_r5r6vKTbzRjrXX8N2XaBZpEiNDlc8WLwCHo';
+const CSV_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=Leads`;
 
 export async function GET(request) {
   const auth = request.headers.get('Authorization');
@@ -13,10 +15,10 @@ export async function GET(request) {
   const checks = {};
 
   try {
-    const { error } = await supabase.from('leads').select('lead_id').limit(1);
-    checks.supabase = error ? { ok: false, error: error.message } : { ok: true };
+    const res = await fetch(CSV_URL);
+    checks.leadsSheet = res.ok ? { ok: true } : { ok: false, error: `HTTP ${res.status}` };
   } catch (err) {
-    checks.supabase = { ok: false, error: err.message };
+    checks.leadsSheet = { ok: false, error: err.message };
   }
 
   try {

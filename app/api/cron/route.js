@@ -1,5 +1,5 @@
 import { buildSlackBlocks } from '@/lib/formatter';
-import { getTodayLeads, getYesterdayLeads, analyzeSupabaseLeads, getSaoPauloDateLabel } from '@/lib/supabase';
+import { getTodayLeads, getYesterdayLeads, analyzeSheetLeads, getSaoPauloDateDDMMYYYY } from '@/lib/leadsSheet';
 import { postReport, postError } from '@/lib/slack-client';
 
 export const runtime = 'nodejs';
@@ -30,7 +30,7 @@ export async function GET(request) {
 
     const isFirstRun = forcedPeriod ? forcedPeriod === 'yesterday' : currentHour === FIRST_RUN_HOUR;
     const leads = isFirstRun ? await getYesterdayLeads() : await getTodayLeads();
-    const leadsAnalysis = analyzeSupabaseLeads(leads);
+    const leadsAnalysis = analyzeSheetLeads(leads);
 
     const timestamp = new Date().toLocaleString('pt-BR', {
       timeZone: 'America/Sao_Paulo',
@@ -38,7 +38,7 @@ export async function GET(request) {
       hour: '2-digit', minute: '2-digit',
     });
 
-    const referenceDate = isFirstRun ? getSaoPauloDateLabel(1) : getSaoPauloDateLabel(0);
+    const referenceDate = isFirstRun ? getSaoPauloDateDDMMYYYY(1) : getSaoPauloDateDDMMYYYY(0);
 
     const blocks = buildSlackBlocks(timestamp, leadsAnalysis, {
       periodLabel: isFirstRun ? `ontem (${referenceDate})` : `hoje (${referenceDate})`,
