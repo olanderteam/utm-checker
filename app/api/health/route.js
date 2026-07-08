@@ -1,10 +1,8 @@
 import { WebClient } from '@slack/web-api';
+import { getTodayLeads } from '@/lib/leadsSheet';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
-
-const SHEET_ID = '1Z3PHa2u_r5r6vKTbzRjrXX8N2XaBZpEiNDlc8WLwCHo';
-const CSV_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=Leads`;
 
 export async function GET(request) {
   const auth = request.headers.get('Authorization');
@@ -15,8 +13,8 @@ export async function GET(request) {
   const checks = {};
 
   try {
-    const res = await fetch(CSV_URL);
-    checks.leadsSheet = res.ok ? { ok: true } : { ok: false, error: `HTTP ${res.status}` };
+    const leads = await getTodayLeads();
+    checks.leadsSheet = { ok: true, leadsToday: leads.length };
   } catch (err) {
     checks.leadsSheet = { ok: false, error: err.message };
   }
