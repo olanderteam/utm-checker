@@ -10,6 +10,21 @@ export const maxDuration = 120;
 // já que às 08h o dia corrente ainda não teve tempo de gerar leads relevantes.
 const FIRST_RUN_HOUR = 8;
 
+// Janela de observação de 5 dias após o bug do "0 SQLs" (aba da planilha renomeada).
+// Enquanto ativa, o relatório é marcado como "Modo de Correção" para facilitar o
+// acompanhamento de perto. Ver commit a8f70f7 para o detalhe da correção.
+const CORRECTION_MODE_START = '2026-07-08';
+const CORRECTION_MODE_DAYS = 5;
+
+function isCorrectionModeActive() {
+  const todayISO = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo' }).format(new Date());
+  const start = new Date(`${CORRECTION_MODE_START}T00:00:00-03:00`);
+  const end = new Date(start);
+  end.setUTCDate(end.getUTCDate() + CORRECTION_MODE_DAYS);
+  const today = new Date(`${todayISO}T00:00:00-03:00`);
+  return today >= start && today < end;
+}
+
 export async function GET(request) {
   const auth = request.headers.get('Authorization');
   if (auth !== `Bearer ${process.env.CRON_SECRET}`) {
@@ -46,6 +61,7 @@ export async function GET(request) {
       headerTitle: isFirstRun
         ? `🎯 Fechamento de Ontem (${referenceDate}) — [OKR][2025Q4]`
         : `🎯 SQLs do Dia (${referenceDate}) — [OKR][2025Q4]`,
+      correctionMode: isCorrectionModeActive(),
     });
     await postReport(blocks);
 
@@ -58,6 +74,7 @@ export async function GET(request) {
       googleLeads: leadsAnalysis.google.count,
       otherLeads: leadsAnalysis.others.count,
       attentionPoints,
+      correctionMode: isCorrectionModeActive(),
     });
   } catch (err) {
     console.error('[cron] erro:', err);
